@@ -1,54 +1,47 @@
-name: CI/CD для miniCDN
+name: CI/CD for miniCDN
 
 on:
   push:
-    branches: [ main ] # или master
+    branches:
+      - main
   pull_request:
-    branches: [ main ] # или master
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      github.repository_name: ${{ github.repository_name }}
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          python-version: '3.8'  # Укажите нужную версию Python
 
-      - name: Build and push Docker images
+      - name: Install dependencies
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/origin-server:latest origin-server
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/origin-server:latest
-          docker build -t ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/cache-server:latest cache-server
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/cache-server:latest
-          docker build -t ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/upload-server:latest upload-server
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/upload-server:latest
-          docker build -t ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/static-content-server:latest static-content-server
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/static-content-server:latest
-          docker build -t ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/api-server:latest api-server
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/api-server:latest
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          pytest  # Или ваша команда для запуска тестов
 
   deploy:
-    needs: build
     runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
     steps:
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          script: |
-            docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/origin-server:latest
-            docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/cache-server:latest
-            docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/upload-server:latest
-            docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/static-content-server:latest
-            docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}/api-server:latest
-            docker-compose up -d
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy to your server or service
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}  # Задайте секрет для токена развертывания
+        run: |
+          # Ваша команда для развертывания, например:
+          curl -X POST -H "Authorization: Bearer $DEPLOY_TOKEN" https://your-deployment-url.com/deploy
