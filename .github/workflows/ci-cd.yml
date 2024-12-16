@@ -32,6 +32,7 @@ jobs:
           docker tag static-content-server:local ghcr.io/${{ github.repository_owner }}/minicdn/static-content-server:latest
           docker build -t api-server:local api-server
           docker tag api-server:local ghcr.io/${{ github.repository_owner }}/minicdn/api-server:latest
+
   test:
     needs: build
     runs-on: ubuntu-latest
