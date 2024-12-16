@@ -1,9 +1,9 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline for CDN Project
 
 on:
   push:
     branches:
-      - main  # Замените на вашу основную ветку, если она называется иначе
+      - main
 
 jobs:
   build:
@@ -27,8 +27,8 @@ jobs:
       - name: Build and push Docker images
         uses: docker/build-push-action@v2
         with:
-          context: .
-          push: false  # Установите true, если хотите пушить образы в реестр
+          context: .  # Укажите корневой контекст
+          push: false  # Установите true, если хотите пушить в реестр
           tags: |
             origin-server:latest
             cache-server:latest
@@ -38,16 +38,17 @@ jobs:
 
       - name: Run Docker Compose
         run: |
-          docker-compose up --build -d
+          docker-compose -f docker-compose.yml up --build -d
 
       - name: Wait for services to start
         run: |
-          sleep 30  # Подождите, чтобы убедиться, что все сервисы запущены
+          sleep 30  # Дайте время сервисам на старт
 
       - name: Run tests (если есть)
         run: |
-          # Здесь можно добавить команды для запуска тестов, если они есть
           echo "Запуск тестов..."
+          # Здесь можно добавить команду для запуска тестов, например:
+          # curl http://localhost:8080/health  # Пример проверки работоспособности origin-server
 
       - name: Shutdown services
         run: |
